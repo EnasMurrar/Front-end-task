@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blobs Simulation</title>
+<style>
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.blob-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.blob {
+  position: absolute;
+
+  border-radius: 70% 80% 70% 90%;
+  background-color: #FF5733; /* Initial color */
+  animation: move-blob 5s infinite alternate linear;
+}
+
+
+
+#blob1 {
+  width: 150px; 
+  height: 150px;  
+  background-color: #FF5733;
+}
+
+#blob2 {
+    width: 100px; 
+  height: 100px; /* Initial size */
+  background-color: #33FF57;
+}
+
+#blob3 {
+    width: 80px; /* Initial size */
+  height: 80px; 
+  background-color: #5733FF;
+}
+
+</style>
+</head>
+<body>
+<div class="blob-container">
+  <div class="blob" id="blob1"></div>
+  <div class="blob" id="blob2"></div>
+  <div class="blob" id="blob3"></div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const blobs = document.querySelectorAll(".blob");
+  
+  blobs.forEach(blob => {
+    blob.style.left = Math.random() * (window.innerWidth - blob.offsetWidth) + "px";
+    blob.style.top = Math.random() * (window.innerHeight - blob.offsetHeight) + "px";
+    blob.velocityX = 0; // Initial velocity set to 0
+    blob.velocityY = 0;
+  });
+
+  function updateBlob(blob) {
+    blob.style.left = parseFloat(blob.style.left) + blob.velocityX + "px";
+    blob.style.top = parseFloat(blob.style.top) + blob.velocityY + "px";
+    
+    // Collision with boundaries
+    if (parseFloat(blob.style.left) <= 0 || parseFloat(blob.style.left) + blob.offsetWidth >= window.innerWidth) {
+        blob.velocityX *= -1;
+    }
+    if (parseFloat(blob.style.top) <= 0 || parseFloat(blob.style.top) + blob.offsetHeight >= window.innerHeight) {
+        blob.velocityY *= -1;
+    }
+
+    // Collision between blobs
+    blobs.forEach(otherBlob => {
+        if (otherBlob !== blob) {
+            const dx = parseFloat(blob.style.left) - parseFloat(otherBlob.style.left);
+            const dy = parseFloat(blob.style.top) - parseFloat(otherBlob.style.top);
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < blob.offsetWidth / 2 + otherBlob.offsetWidth / 2) {
+                // Blobs collided
+                const angle = Math.atan2(dy, dx);
+                const sin = Math.sin(angle);
+                const cos = Math.cos(angle);
+
+                // Rotate blob velocities
+                const velX1 = blob.velocityX * cos + blob.velocityY * sin;
+                const velY1 = blob.velocityY * cos - blob.velocityX * sin;
+                const velX2 = otherBlob.velocityX * cos + otherBlob.velocityY * sin;
+                const velY2 = otherBlob.velocityY * cos - otherBlob.velocityX * sin;
+
+                // Swap velocities
+                blob.velocityX = velX2;
+                blob.velocityY = velY2;
+                otherBlob.velocityX = velX1;
+                otherBlob.velocityY = velY1;
+                
+                // Separate blobs to avoid overlap
+                const overlap = (blob.offsetWidth / 2 + otherBlob.offsetWidth / 2) - distance;
+                const separationX = overlap * Math.cos(angle);
+                const separationY = overlap * Math.sin(angle);
+                blob.style.left = parseFloat(blob.style.left) + separationX + "px";
+                blob.style.top = parseFloat(blob.style.top) + separationY + "px";
+
+                // Adjust blob size
+                const newSize = blob.offsetWidth - overlap / 2; // Decrease size by half of overlap
+                if (newSize >= 30) { // Check if size is greater than or equal to 30px
+                    blob.style.width = newSize + "px";
+                    blob.style.height = newSize + "px";
+                }
+            }
+        }
+    });
+}
+
+
+  function animate() {
+    blobs.forEach(blob => updateBlob(blob));
+    requestAnimationFrame(animate);
+  }
+
+ animate();
+
+  // Mouse move event 
+  document.addEventListener("mousemove", function(event) {
+    // Get mouse coordinates
+    const mouseX = event.clientX;
+    const mouseY = event.clientY;
+    
+    // Determine which blob was clicked
+    blobs.forEach(blob => {
+      const rect = blob.getBoundingClientRect(); // Get blob's bounding rectangle
+      if (mouseX >= rect.left && mouseX <= rect.right && mouseY >= rect.top && mouseY <= rect.bottom) {
+        // Update blob position
+        blob.positionX = mouseX - (blob.offsetWidth / 2);
+        blob.positionY = mouseY - (blob.offsetHeight / 2);
+        updateBlobPosition(blob);
+      }
+    });
+  });
+
+   // Function to update blob position
+   function updateBlobPosition(blob) {
+    blob.style.left = blob.positionX + "px"; // Update left position
+    blob.style.top = blob.positionY + "px"; // Update top position
+  }
+
+
+
+  // Gyroscope responsiveness for mobile devices
+  window.addEventListener('deviceorientation', function(event) {
+    const beta = event.beta; // Rotation around the axis perpendicular to the screen (tilt forward/backward)
+    const gamma = event.gamma; // Rotation around the axis perpendicular to the screen (tilt left/right)
+    
+    const accelerationX = gamma / 10; // Adjust sensitivity
+    const accelerationY = beta / 10;
+
+    blobs.forEach(blob => {
+      blob.velocityX += accelerationX;
+      blob.velocityY += accelerationY;
+    });
+  });
+});
+</script>
+</body>
+</html>
